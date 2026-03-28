@@ -212,13 +212,6 @@ router.delete('/:id', protect, validateObjectId('id'), deletePet);
 router.get('/:id/dashboard', protect, validateObjectId('id'), getPetDashboard);
 /**
  * @swagger
- * tags:
- *   name: Pets
- *   description: Pet APIs
- */
-
-/**
- * @swagger
  * /api/pets/public/{publicCode}:
  *   get:
  *     summary: Get public pet information by QR code
@@ -278,7 +271,6 @@ router.get('/:id/dashboard', protect, validateObjectId('id'), getPetDashboard);
  *                       example: pet_ab12cd34ef
  *                     publicProfileUrl:
  *                       type: string
- *                       example: https://your-frontend-domain.vercel.app/pet/pet_ab12cd34ef
  *                     avatar:
  *                       type: object
  *                       properties:
@@ -291,10 +283,25 @@ router.get('/:id/dashboard', protect, validateObjectId('id'), getPetDashboard);
  *                       properties:
  *                         url:
  *                           type: string
- *                           example: https://res.cloudinary.com/your-cloud/image/upload/v1234567890/pawtal/qr/pet_qr.png
  *                         publicId:
  *                           type: string
- *                           example: pawtal/qr/pet_qr_abc123
+ *                     owner:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                           example: Nguyễn Văn A
+ *                         phone:
+ *                           type: string
+ *                           example: 0909123456
+ *                         address:
+ *                           type: string
+ *                           example: TP.HCM
+ *                         email:
+ *                           type: string
+ *                           example: owner@gmail.com
  *       404:
  *         description: Pet not found
  */

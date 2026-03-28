@@ -213,9 +213,14 @@ const getPetDashboard = catchAsync(async (req, res) => {
   });
 });
 const getPublicPetProfile = catchAsync(async (req, res) => {
-  const pet = await Pet.findOne({ publicCode: req.params.publicCode }).select(
-    'name type breed gender dob weight color microchipId avatar publicCode publicProfileUrl qrCodeDataUrl createdAt'
-  );
+  const pet = await Pet.findOne({ publicCode: req.params.publicCode })
+    .select(
+      'name type breed gender dob weight color microchipId avatar publicCode publicProfileUrl qrCode owner createdAt'
+    )
+    .populate({
+      path: 'owner',
+      select: 'name phone address email'
+    });
 
   if (!pet) {
     return res.status(404).json({
