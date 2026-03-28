@@ -3,7 +3,17 @@ const HealthRecord = require('../models/HealthRecord');
 const Vaccination = require('../models/Vaccination');
 const MedicalVisit = require('../models/MedicalVisit');
 const catchAsync = require('../utils/catchAsync');
-const { uploadBufferToCloudinary, deleteFromCloudinary } = require('../utils/uploadToCloudinary');
+const {
+  uploadBufferToCloudinary,
+  uploadQrBufferToCloudinary,
+  deleteFromCloudinary
+} = require('../utils/uploadToCloudinary');
+
+const {
+  generatePublicCode,
+  buildPublicPetUrl,
+  generatePetQrBuffer
+} = require('../utils/generatePetQr');
 
 const createPet = catchAsync(async (req, res) => {
   const { name, type, breed, gender, dob, weight, color, microchipId } = req.body;
@@ -20,6 +30,21 @@ const createPet = catchAsync(async (req, res) => {
     avatar = await uploadBufferToCloudinary(req.file, 'pawtal/pets');
   }
 
+  let publicCode;
+  let exists = true;
+
+  while (exists) {
+    publicCode = generatePublicCode();
+    const existingPet = await Pet.findOne({ publicCode });
+    if (!existingPet) exists = false;
+  }
+
+  const publicProfileUrl = buildPublicPetUrl(publicCode);
+
+  const qrBuffer = await generatePetQrBuffer(publicProfileUrl);
+
+  const qrCode = await uploadQrBufferToCloudinary(qrBuffer, 'pawtal/qr');
+
   const pet = await Pet.create({
     owner: req.user._id,
     name,
@@ -30,7 +55,10 @@ const createPet = catchAsync(async (req, res) => {
     weight,
     color,
     microchipId,
-    avatar
+    avatar,
+    publicCode,
+    publicProfileUrl,
+    qrCode
   });
 
   return res.status(201).json({
@@ -63,6 +91,33 @@ const getPetById = catchAsync(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: 'Get pet successfully',
+    data: pet
+  });
+});
+
+const uploadPetImage = catchAsync(async (req, res) => {
+  const pet = await Pet.findOne({ _id: req.params.id, owner: req.user._id });
+
+  if (!pet) {
+    return res.status(404).json({
+      success: false,
+      message: 'Pet not found'
+    });
+  }
+
+  if (req.file) {
+    const uploaded = await uploadBufferToCloudinary(req.file, 'pawtal/pets');
+    if (pet.avatar && pet.avatar.publicId) {
+      await deleteFromCloudinary(pet.avatar.publicId);
+    }
+    pet.avatar = uploaded;
+  }
+
+  await pet.save();
+
+  return res.status(200).json({
+    success: true,
+    message: 'Update pet successfully',
     data: pet
   });
 });
@@ -115,6 +170,10 @@ const deletePet = catchAsync(async (req, res) => {
     await deleteFromCloudinary(pet.avatar.publicId);
   }
 
+  if (pet.qrCode && pet.qrCode.publicId) {
+    await deleteFromCloudinary(pet.qrCode.publicId);
+  }
+
   await HealthRecord.deleteOne({ pet: pet._id });
   await Vaccination.deleteMany({ pet: pet._id });
   await MedicalVisit.deleteMany({ pet: pet._id });
@@ -153,6 +212,24 @@ const getPetDashboard = catchAsync(async (req, res) => {
     }
   });
 });
+const getPublicPetProfile = catchAsync(async (req, res) => {
+  const pet = await Pet.findOne({ publicCode: req.params.publicCode }).select(
+    'name type breed gender dob weight color microchipId avatar publicCode publicProfileUrl qrCodeDataUrl createdAt'
+  );
+
+  if (!pet) {
+    return res.status(404).json({
+      success: false,
+      message: 'Pet not found'
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: 'Get public pet profile successfully',
+    data: pet
+  });
+});
 
 module.exports = {
   createPet,
@@ -160,5 +237,7 @@ module.exports = {
   getPetById,
   updatePet,
   deletePet,
-  getPetDashboard
+  getPetDashboard,
+  uploadPetImage,
+  getPublicPetProfile
 };

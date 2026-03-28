@@ -1,26 +1,55 @@
 const cloudinary = require('../config/cloudinary');
 
-const uploadBufferToCloudinary = async (file, folder = 'pawtal/general') => {
-  if (!file) return null;
+const uploadBufferToCloudinary = (file, folder = 'pawtal/pets') => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: 'image'
+      },
+      (error, result) => {
+        if (error) return reject(error);
 
-  const dataUri = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-  const result = await cloudinary.uploader.upload(dataUri, {
-    folder,
-    resource_type: 'image'
+        resolve({
+          url: result.secure_url,
+          publicId: result.public_id
+        });
+      }
+    );
+
+    stream.end(file.buffer);
   });
+};
 
-  return {
-    url: result.secure_url,
-    publicId: result.public_id
-  };
+const uploadQrBufferToCloudinary = (buffer, folder = 'pawtal/qr') => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: 'image',
+        format: 'png'
+      },
+      (error, result) => {
+        if (error) return reject(error);
+
+        resolve({
+          url: result.secure_url,
+          publicId: result.public_id
+        });
+      }
+    );
+
+    stream.end(buffer);
+  });
 };
 
 const deleteFromCloudinary = async (publicId) => {
-  if (!publicId) return null;
-  return cloudinary.uploader.destroy(publicId);
+  if (!publicId) return;
+  await cloudinary.uploader.destroy(publicId);
 };
 
 module.exports = {
   uploadBufferToCloudinary,
+  uploadQrBufferToCloudinary,
   deleteFromCloudinary
 };
