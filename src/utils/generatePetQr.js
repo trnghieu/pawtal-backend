@@ -11,7 +11,7 @@ function buildPublicPetUrl(publicCode) {
   const baseUrl =
     process.env.PET_PUBLIC_BASE_URL ||
     process.env.FRONTEND_URL ||
-    'http://localhost:5173';
+    'https://pawtal-frontend.vercel.app/';
 
   return `${baseUrl.replace(/\/$/, '')}/pet/${publicCode}`;
 }
